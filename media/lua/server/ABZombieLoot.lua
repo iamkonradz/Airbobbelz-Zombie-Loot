@@ -16,6 +16,7 @@ local function abch(chance, sandboxMultiplier, extraMultiplier)
   return baseChance * (globalMultiplier / 100)
 end
 
+-- export global
 AB_get_chance = abch
 
 -- why is this not built into lua?
@@ -102,6 +103,36 @@ end
 local LootTables = nil
 
 AB_LOOT_PLUGINS = {}
+
+function AB_is_valid_item(itemString)
+  -- special item strings
+  if itemString == "[LOOSE_BULLETS]" then
+    return true
+  end
+  if itemString == "[GUN_MAG]" then
+    return true
+  end
+  local createdItem = InventoryItemFactory.CreateItem(itemString)
+  return createdItem ~= nil
+end
+
+-- remove bad items from tables
+function AB_table_cleanup(distroTable)
+  for index, value in pairs(distroTable) do
+    if type(value) == "table" then
+      if value.item ~= nil then
+        if not AB_is_valid_item(value.item) then
+          print("AB LOOT -- cleaning up invalid item: " .. value.item)
+          table.remove(distroTable, index)
+        else
+          AB_table_cleanup(value)
+        end
+      else
+        AB_table_cleanup(value)
+      end
+    end
+  end
+end
 
 function ABGetLootTables()
   if LootTables == nil then
@@ -202,9 +233,9 @@ function ABGetLootTables()
         },
         Bandit = {
           rollEach = {
-            {item = "CheapSpeed", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
-            {item = "Cigarettes", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
-            {item = "CokeBaggie", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
+            {item = "CheapSpeed", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "Cigarettes", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "CokeBaggie", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "Knuckleduster", chance = abch(10, OutfitMultiplier, MeleeMultiplier)},
             {item = "PornoMag6", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "WhiskeyFull", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
@@ -212,17 +243,17 @@ function ABGetLootTables()
         },
         BaseballPlayer_KY = {
           rollEach = {
-            {item = "Baseball", chance = abch(15, OutfitMultiplier, JunkMultiplier)}
+            {item = "Baseball", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
           }
         },
         BaseballPlayer_Rangers = {
           rollEach = {
-            {item = "Baseball", chance = abch(15, OutfitMultiplier, JunkMultiplier)}
+            {item = "Baseball", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
           }
         },
         BaseballPlayer_Z = {
           rollEach = {
-            {item = "Baseball", chance = abch(15, OutfitMultiplier, JunkMultiplier)}
+            {item = "Baseball", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
           }
         },
         Bathrobe = {
@@ -254,7 +285,6 @@ function ABGetLootTables()
             {item = "Cigarettes", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
             {item = "CokeBaggie", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
             {item = "Knuckleduster", chance = abch(20, OutfitMultiplier, MeleeMultiplier)},
-            {item = "Revolver_Short", chance = abch(5, OutfitMultiplier, PistolMultiplier)},
             {item = "WhiskeyFull", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "Molotov", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
           }
@@ -270,18 +300,18 @@ function ABGetLootTables()
           },
           rollOne = {
             {
-              {item = "BerryBlack", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryBlue", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryGeneric1", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryGeneric2", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryGeneric3", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryGeneric4", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryGeneric5", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)}
+              {item = "BerryBlack", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
+              {item = "BerryBlue", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
+              {item = "BerryGeneric1", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
+              {item = "BerryGeneric2", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
+              {item = "BerryGeneric3", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
+              {item = "BerryGeneric4", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
+              {item = "BerryGeneric5", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)}
             },
             {
-              {item = "PlantainCataplasm", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-              {item = "ComfreyCataplasm", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-              {item = "WildGarlicCataplasm", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
+              {item = "PlantainCataplasm", chance = abch(8, OutfitMultiplier, JunkMultiplier)},
+              {item = "ComfreyCataplasm", chance = abch(8, OutfitMultiplier, JunkMultiplier)},
+              {item = "WildGarlicCataplasm", chance = abch(8, OutfitMultiplier, JunkMultiplier)}
             },
             {
               {item = "CliponCompass", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
@@ -336,8 +366,8 @@ function ABGetLootTables()
           },
           rollOne = {
             {
-              {item = "spraypaint.SpraycanOrange", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
-              {item = "spraypaint.SpraycanRed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)}
+              {item = "spraypaint.SpraycanOrange", chance = abch(8, OutfitMultiplier, ResourceMultiplier)},
+              {item = "spraypaint.SpraycanRed", chance = abch(8, OutfitMultiplier, ResourceMultiplier)}
             },
             {
               {item = "DuctTape", chance = abch(3, OutfitMultiplier, ResourceMultiplier)},
@@ -401,12 +431,12 @@ function ABGetLootTables()
           },
           rollOne = {
             {
-              {item = "farming.BroccoliBagSeed", chance = abch(20, OutfitMultiplier, ResourceMultiplier)},
-              {item = "farming.CabbageBagSeed", chance = abch(20, OutfitMultiplier, ResourceMultiplier)},
-              {item = "farming.CarrotBagSeed", chance = abch(20, OutfitMultiplier, ResourceMultiplier)},
-              {item = "farming.RedRadishBagSeed", chance = abch(20, OutfitMultiplier, ResourceMultiplier)},
-              {item = "farming.StrewberrieBagSeed", chance = abch(20, OutfitMultiplier, ResourceMultiplier)},
-              {item = "farming.TomatoBagSeed", chance = abch(20, OutfitMultiplier, ResourceMultiplier)}
+              {item = "farming.BroccoliBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
+              {item = "farming.CabbageBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
+              {item = "farming.CarrotBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
+              {item = "farming.RedRadishBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
+              {item = "farming.StrewberrieBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
+              {item = "farming.TomatoBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)}
             }
           }
         },
@@ -564,7 +594,17 @@ function ABGetLootTables()
                 {item = "Screws", chance = abch(50), times = 12}
               }
             },
-            {item = "EngineParts", chance = abch(5, OutfitMultiplier, ResourceMultiplier)},
+            {
+              item = "EngineParts",
+              chance = abch(5, OutfitMultiplier, ResourceMultiplier),
+              alsoRollEach = {
+                {
+                  item = "EngineParts",
+                  chance = abch(50),
+                  times = 2
+                }
+              }
+            },
             {item = "CarBatteryCharger", chance = abch(1, OutfitMultiplier, ResourceMultiplier)},
             {item = "spraypaint.SpraycanRed", chance = abch(15, OutfitMultiplier, ResourceMultiplier)}
           }
@@ -707,13 +747,13 @@ function ABGetLootTables()
           rollEach = {
             {item = "Book", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "BeerCan", chance = abch(5, OutfitMultiplier, CannedFoodMultiplier)},
-            {item = "CDplayer", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
+            {item = "Radio.CDplayer", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "ComicBook", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "Cube", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "Notebook", chance = abch(25, OutfitMultiplier, JunkMultiplier)},
             {item = "Firecracker", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "Pencil", chance = abch(25, OutfitMultiplier, JunkMultiplier)},
-            {item = "Videogame", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
+            {item = "VideoGame", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
           },
           rollOne = {
             {
@@ -799,7 +839,7 @@ function ABGetLootTables()
         },
         Varsity = {
           rollEach = {
-            {item = "CDplayer", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "Radio.CDplayer", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "HottieZ", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
             {item = "BeerCan", chance = abch(10, OutfitMultiplier, CannedFoodMultiplier)},
             {item = "WhiskeyFull", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)}
@@ -1212,7 +1252,11 @@ function ABGetLootTables()
         rollEach = {
           {item = "Tissue", chance = abch(1, JunkMultiplier)},
           {item = "Newspaper", chance = abch(1, JunkMultiplier)},
-          {item = "Money", chance = abch(1, JunkMultiplier), times = 5},
+          {
+            item = "Money",
+            chance = abch(1, JunkMultiplier),
+            alsoRollEach = {{item = "Money", chance = abch(50), times = 4}}
+          },
           {item = "Paperclip", chance = abch(1, JunkMultiplier), times = 3},
           {item = "BandageDirty", chance = abch(1, JunkMultiplier)},
           {item = "WaterBottleEmpty", chance = abch(1, JunkMultiplier)},
@@ -1290,6 +1334,10 @@ function ABGetLootTables()
     for _, plugin in pairs(AB_LOOT_PLUGINS) do
       plugin(LootTables)
     end
+
+    -- remove any invalid items from the loot table, so that
+    -- we don't end up wasting rolls on items that would never appear
+    AB_table_cleanup(LootTables)
   end
   return LootTables
 end
