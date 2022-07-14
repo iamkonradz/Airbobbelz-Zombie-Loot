@@ -1,10 +1,11 @@
 -- chances out of 100000 enables fractional chances. Chances passed to abch/AB_get_chance are still out of 100
 ABLoot_DIVISOR = 100000
+AB_LOOT_PLUGINS = {}
 
 -- provided `chance`, a double representing the chance out of 100 (which can be a decimal between 0 and 1),
 -- return an integer chance out of 100,000 (ABLoot_DIVISOR) with mod multipliers applied.
 -- sandboxMultiplier is a percentage integer to apply where 100 is 100% or 1x, 200 is 200% or 2x, etc
-local function abch(chance, sandboxMultiplier, extraMultiplier)
+function AB_get_chance(chance, sandboxMultiplier, extraMultiplier)
   local globalMultiplier = SandboxVars.AirbobbelzLoot.GlobalMultiplier or 100
   local baseChance = chance * (ABLoot_DIVISOR / 100)
   if sandboxMultiplier ~= nil then
@@ -16,8 +17,8 @@ local function abch(chance, sandboxMultiplier, extraMultiplier)
   return baseChance * (globalMultiplier / 100)
 end
 
--- export global
-AB_get_chance = abch
+-- shortcut
+local abch = AB_get_chance
 
 -- why is this not built into lua?
 -- https://stackoverflow.com/questions/1426954/split-string-in-lua
@@ -32,11 +33,65 @@ local function split(inputstr, sep)
   return t
 end
 
+local function unserializeCustomItem(itemString)
+  local splitByComma = split(itemString, ",")
+  -- item string
+  local item = nil
+  -- chance to roll item
+  local chance = 1 -- default 1%
+  -- number of additional items (same as parent item) to roll
+  local more = 0
+  -- chance of each individual additional item
+  local moreChance = 50 -- default 50%
+  for _, block in pairs(splitByComma) do
+    local splitByCol = split(block, ":")
+    local k = splitByCol[1]
+    local v = splitByCol[2]
+    if k and v ~= nil then
+      if k == "item" then
+        item = v
+      end
+      if k == "chance" then
+        chance = tonumber(v)
+      end
+      if k == "more" then
+        more = tonumber(v)
+      end
+      if k == "moreChance" then
+        moreChance = tonumber(v)
+      end
+    end
+  end
+
+  local myItem = {
+    item = item,
+    chance = abch(chance, SandboxVars.AirbobbelzLoot.ExtraMultiplier)
+  }
+
+  if more and more > 0 then
+    myItem.alsoRollEach = {
+      {
+        item = item,
+        chance = abch(moreChance),
+        times = more
+      }
+    }
+  end
+
+  return myItem
+end
+
 -- build a table of items and chances from a serialized string representing that table
 -- ie
 -- Base.Axe:0.1;Crowbar:2;Paper:0.001
 -- becomes
--- { {item="Base.Axe", chance=abch(0.1,ExtraMultiplier)}, {item="Crowbar", chance=abch(2,ExtraMultiplier)}, {item="Paper", chance=abch(0.001,ExtraMultiplier)} }
+-- { {item="Base.Axe", chance=abch(0.1,ExtraMultiplier)}, {item="Crowbar", chance=abch(2,ExtraMultiplier)}, {item="Newspaper", chance=abch(0.001,ExtraMultiplier)} }
+-- AND
+-- item:Base.Axe,chance:0.1;item:Newspaper,chance:0.001,more:10,,moreChance:50
+-- becomes
+-- { {item="Base.Axe",chance=0.1 }, {item="Newspaper", chance=0.001, alsoRollEach={{ item="Newspaper", chance=50, times=10 }}}}
+--
+-- both 'item formats' are acceptable
 local function unserializePairs(str)
   if string.len(str) == 0 then
     return {}
@@ -45,9 +100,25 @@ local function unserializePairs(str)
   local splitString = split(str, ";")
   local mytable = {}
   for _, v in pairs(splitString) do
-    if string.find(v, ":") then
+    if string.find(v, ",") then
+      -- if extra format: item:Money,chance:1,more:10,moreChance:50
+      local customItem = unserializeCustomItem(v)
+      if customItem.item and customItem.chance then
+        table.insert(mytable, customItem)
+      else
+        print("AB Loot -- invalid custom item: " .. v)
+      end
+    elseif string.find(v, ":") then
+      -- if simple format: Money:1
       local kv = split(v, ":")
-      table.insert(mytable, {item = kv[1], chance = abch(tonumber(kv[2]), SandboxVars.AirbobbelzLoot.ExtraMultiplier)})
+      if kv[1] and kv[2] ~= nil then
+        table.insert(
+          mytable,
+          {item = kv[1], chance = abch(tonumber(kv[2]), SandboxVars.AirbobbelzLoot.ExtraMultiplier)}
+        )
+      else
+        print("AB Loot -- invalid custom item: " .. v)
+      end
     end
   end
   return mytable
@@ -68,6 +139,8 @@ local function debug_dump(o)
     return tostring(o)
   end
 end
+
+AB_debug_dump = debug_dump
 
 -- mutates t1 by appending all of t2's values into t1
 function AB_merge_into(t1, t2)
@@ -102,8 +175,6 @@ end
 
 local LootTables = nil
 
-AB_LOOT_PLUGINS = {}
-
 function AB_is_valid_item(itemString)
   -- special item strings
   if itemString == "[LOOSE_BULLETS]" then
@@ -122,7 +193,7 @@ function AB_table_cleanup(distroTable)
     if type(value) == "table" then
       if value.item ~= nil then
         if not AB_is_valid_item(value.item) then
-          print("AB LOOT -- cleaning up invalid item: " .. value.item)
+          -- print("AB LOOT -- cleaning up invalid item: " .. value.item)
           table.remove(distroTable, index)
         else
           AB_table_cleanup(value)
@@ -1259,11 +1330,13 @@ function ABGetLootTables()
           },
           {item = "Paperclip", chance = abch(1, JunkMultiplier), times = 3},
           {item = "BandageDirty", chance = abch(1, JunkMultiplier)},
+          {item = "Razor", chance = abch(0.5, JunkMultiplier)},
           {item = "WaterBottleEmpty", chance = abch(1, JunkMultiplier)},
           {item = "RubberBand", chance = abch(1, JunkMultiplier)},
           {item = "ComicBook", chance = abch(0.5, JunkMultiplier)},
           {item = "Book", chance = abch(0.2, JunkMultiplier)},
-          {item = "BeerCanEmpty", chance = abch(1, JunkMultiplier)}
+          {item = "BeerCanEmpty", chance = abch(1, JunkMultiplier)},
+          {item = "Yoyo", chance = abch(0.2, JunkMultiplier)}
         },
         rollOne = {}
       },

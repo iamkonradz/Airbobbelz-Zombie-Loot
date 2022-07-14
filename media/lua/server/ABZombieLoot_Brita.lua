@@ -44,7 +44,9 @@ local function addBritaLoot(lootTable)
     table.insert(lootTable.otherGuns.rollOne, britaGuns)
 
     -- add brita ammo boxes (gun store distribution) to AB loot distribution
-    local britaAmmoBoxes = AB_get_distro_for_vanilla_table(A26ProcDistro.list.GunStoreAmmo, AmmoBoxMultiplier)
+    -- multiply by ammo box multiplier and also 1% -- because ammo boxes are plentiful in gun stores but on zombies should
+    -- be much rarer. Obviously can be customized with the ammo box sandbox multiplier, but default value should be in-line with rare/very rare loot amounts
+    local britaAmmoBoxes = AB_get_distro_for_vanilla_table(A26ProcDistro.list.GunStoreAmmo, AmmoBoxMultiplier * 0.01)
     local britaAmmoBoxesFiltered = {}
     for i, v in pairs(britaAmmoBoxes) do
       local itemName = v.item

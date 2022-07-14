@@ -1,0 +1,9 @@
+# Version 1.0.1
+
+- reduce ammo box drops by 100x when Brita's weapons is activated to be more in-line with extremely rare vanilla drops
+- add alternative syntax for "extras" rolls to support items that should result in more than 1 item dropped (ie item:Money,chance:50,more:6,moreChance:50)
+- add yoyo and razor to junk drops
+
+# Version 1.0.0
+
+- public release

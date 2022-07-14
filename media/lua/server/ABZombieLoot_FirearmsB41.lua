@@ -11,7 +11,7 @@ local function addFirearmsB41Loot(lootTable)
     local PistolMultiplier = SandboxVars.AirbobbelzLoot.PistolMultiplier or 100
     local LongGunsMultiplier = SandboxVars.AirbobbelzLoot.LongGunMultiplier or 100
     local GunLooseBulletsMultiplier = SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier or 100
-    local GunLooseBulletsRolls = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls or 6
+    local GunLooseBulletsRolls = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls or 12
 
     local ammoTypes = {"Bullets4440", "Bullets357", "762x51Bullets", "762x39Bullets", "Bullets22", "Bullets3006"}
     local ammo = {}
@@ -42,8 +42,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -53,8 +53,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -64,8 +64,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -75,8 +75,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       }
@@ -89,8 +89,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -100,8 +100,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -111,8 +111,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -122,8 +122,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -133,8 +133,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -144,8 +144,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -155,8 +155,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -166,8 +166,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -177,8 +177,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -188,8 +188,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -199,8 +199,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -210,8 +210,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -221,8 +221,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -232,8 +232,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -243,8 +243,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -254,8 +254,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -265,8 +265,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -276,8 +276,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -287,8 +287,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -298,8 +298,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -309,8 +309,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -320,8 +320,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       },
@@ -331,8 +331,8 @@ local function addFirearmsB41Loot(lootTable)
       --     chance = AB_get_chance(0.01, LongGunsMultiplier),
       --     alsoRollEach = {
       --         { item = "[LOOSE_BULLETS]",
-      --             chance = AB_get_chance(15, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-      --             times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls },
+      --             chance = AB_get_chance(15, GunLooseBulletsMultiplier),
+      --             times = GunLooseBulletsRolls },
       --     }
       -- },
       {
@@ -341,8 +341,8 @@ local function addFirearmsB41Loot(lootTable)
         alsoRollEach = {
           {
             item = "[LOOSE_BULLETS]",
-            chance = AB_get_chance(50, SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier),
-            times = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls
+            chance = AB_get_chance(50, GunLooseBulletsMultiplier),
+            times = GunLooseBulletsRolls
           }
         }
       }

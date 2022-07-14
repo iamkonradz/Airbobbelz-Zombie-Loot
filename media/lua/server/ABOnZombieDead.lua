@@ -105,7 +105,7 @@ ABAddItem = function(inventory, itemDef, parentItem)
 				else
 					if not isGunCase then
 						-- if we didn't have a mag type, it's a weapon that doesn't take a mag,
-						-- like a revolver or shotgun. add random ammo
+						-- like a revolver or shotgun. add random ammo.
 						-- guns in gun case are "safe" and always unloaded
 						item:setCurrentAmmoCount(ZombRand(item:getMaxAmmo() + 1))
 					end
@@ -243,17 +243,14 @@ local function ABOnZombieDead(zombie)
 
 		-- append outfit distro to apply top level rollEach and rollOne as extra items every time
 		distros.byOutfit = {
-			list = lootTables.byOutfit[outfit],
-			multiplier = SandboxVars.AirbobbelzLoot.OutfitMultiplier
+			list = lootTables.byOutfit[outfit]
 		}
 	end
 
 	for distroName, distro in pairs(distros) do
 		local list = distro.list
-		if list.rollEach then
-			if #list.rollEach then
-				ABrollDistributionsForEach(zombieInventory, list.rollEach)
-			end
+		if list.rollEach and #list.rollEach > 0 then
+			ABrollDistributionsForEach(zombieInventory, list.rollEach)
 		end
 		if list.rollOne then
 			for _, k in pairs(list.rollOne) do
