@@ -8,7 +8,7 @@ export function serialize(objects) {
           let str = `item:${item},chance:${chance}`;
           str += `,more:${more}`;
           if (moreChance > 0) {
-            str += `,addChance:${moreChance}`;
+            str += `,moreChance:${moreChance}`;
           }
           return str;
         } else {

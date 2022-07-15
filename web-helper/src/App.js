@@ -26,10 +26,6 @@ function Item({ item, chance, more, moreChance, onChange, onDelete }) {
     moreChance,
   };
 
-  // useEffect(() => {
-  //   form.resetFields();
-  // }, [item, chance, add, addChance]);
-
   return (
     <React.Fragment>
       <Form
@@ -46,16 +42,6 @@ function Item({ item, chance, more, moreChance, onChange, onDelete }) {
         <Row gutter={{ xs: 8, sm: 8, md: 16, lg: 16 }}>
           <Col span={9}>
             <Form.Item name="item" noStyle>
-              {/* <Input
-                type="text"
-                value={item}
-                placeholder="Item"
-                addonBefore={
-                  <Tooltip title="Item name, 'Base.' can be omitted if the item is in base category">
-                    <QuestionCircleOutlined />
-                  </Tooltip>
-                }
-              /> */}
               {item}
             </Form.Item>
           </Col>
@@ -165,6 +151,13 @@ function App() {
   const [addModalVisible, setAddModalVisible] = useState(false);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("q")) {
+      setSandboxString(searchParams.get("q"));
+    }
+  }, []);
+
+  useEffect(() => {
     const serialized = serialize(items);
     if (sandboxString !== serialized) {
       setSandboxString(serialized);
@@ -201,8 +194,6 @@ function App() {
                   const newItems = { ...items };
                   newItems[index] = newItem;
                   setItems(newItems);
-                  // newItems[index] = newItem;
-                  // setItems(newItems);
                 }}
                 onDelete={() => {
                   const newItems = {
@@ -210,9 +201,6 @@ function App() {
                   };
                   newItems[index] = null;
                   setItems(newItems);
-                  // const newItems = [...items];
-                  // newItems.splice(index, 1);
-                  // setItems(newItems);
                 }}
               />
             );
@@ -223,10 +211,6 @@ function App() {
           type="primary"
           onClick={() => {
             setAddModalVisible(true);
-            // const newItems = { ...items };
-            // newItems[Object.keys(items).length] = {};
-            // setItems(newItems);
-            // setItems([...items, {}]);
           }}
         >
           Add Another Item
