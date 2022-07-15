@@ -17,13 +17,13 @@ import "antd/dist/antd.css";
 import "./App.css";
 import { serialize, deserialize } from "./util";
 
-function Item({ item, chance, add, addChance, onChange, onDelete }) {
+function Item({ item, chance, more, moreChance, onChange, onDelete }) {
   const [form] = Form.useForm();
   const myItem = {
     item,
     chance,
-    add,
-    addChance,
+    more,
+    moreChance,
   };
 
   // useEffect(() => {
@@ -78,13 +78,13 @@ function Item({ item, chance, add, addChance, onChange, onDelete }) {
             </Form.Item>
           </Col>
           <Col span={4}>
-            <Form.Item name="add" noStyle>
+            <Form.Item name="more" noStyle>
               <InputNumber
                 width="100%"
                 min={0}
                 max={100}
                 type="text"
-                value={add}
+                value={more}
                 placeholder="More"
                 addonBefore={
                   <Tooltip title="This many additional rolls will be made when the parent item is added to loot. Use this for items that should drop more than one, like Money or Cigarettes">
@@ -95,13 +95,13 @@ function Item({ item, chance, add, addChance, onChange, onDelete }) {
             </Form.Item>
           </Col>
           <Col span={4}>
-            <Form.Item name="addChance" noStyle>
+            <Form.Item name="moreChance" noStyle>
               <InputNumber
                 min={0}
                 max={100}
                 type="text"
-                value={addChance}
-                placeholder="Add Chance"
+                value={moreChance}
+                placeholder="More Chance"
                 precision={2}
                 addonBefore={
                   <Tooltip title="Chance for an item drop for each 'additional' roll. Defaults to 50% if omitted">

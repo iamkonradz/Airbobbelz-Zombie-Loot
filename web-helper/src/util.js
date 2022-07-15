@@ -2,13 +2,13 @@ export function serialize(objects) {
   return Object.values(objects)
     .filter(Boolean)
     .map((obj) => {
-      const { item, chance, add, addChance } = obj;
+      const { item, chance, more, moreChance } = obj;
       if (item && chance) {
-        if (add) {
+        if (more) {
           let str = `item:${item},chance:${chance}`;
-          str += `,add:${add}`;
-          if (addChance > 0) {
-            str += `,addChance:${addChance}`;
+          str += `,more:${more}`;
+          if (moreChance > 0) {
+            str += `,addChance:${moreChance}`;
           }
           return str;
         } else {
