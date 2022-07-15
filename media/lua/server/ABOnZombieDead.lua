@@ -3,6 +3,7 @@ require "Items/ProceduralDistributions"
 require "Vehicles/VehicleDistributions"
 
 require "ABZombieLoot"
+require "ABPretty"
 
 local ROLL_RANGE = ABLoot_DIVISOR
 
@@ -67,7 +68,7 @@ ABAddItem = function(inventory, itemDef, parentItem)
 			-- set item condition based on sandbox options
 			if rand(100) > SandboxVars.AirbobbelzLoot.ChanceMaxCondition then
 				local maximumCondition = item:getConditionMax()
-				local minimumCondition = math.floor(SandboxVars.AirbobbelzLoot.MinimumCondition / 100 * item:getConditionMax())
+				local minimumCondition = math.ceil(SandboxVars.AirbobbelzLoot.MinimumCondition / 100 * item:getConditionMax())
 				if isGunCase then
 					minimumCondition = math.max(minimumCondition, math.floor(maximumCondition / 2))
 				end
@@ -229,6 +230,11 @@ local function ABOnZombieDead(zombie)
 		gunBags = {list = lootTables.gunBags},
 		extras = {list = lootTables.extras}
 	}
+
+	if outfit and string.find(outfit, "Naked") then
+		-- naked zombies don't get any items :P
+		return
+	end
 
 	if outfit and lootTables.byOutfit[outfit] then
 		local outfitTable = lootTables.byOutfit[outfit]

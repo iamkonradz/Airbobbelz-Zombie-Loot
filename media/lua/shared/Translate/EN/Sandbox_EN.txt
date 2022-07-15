@@ -51,5 +51,7 @@ Sandbox_EN = {
   Sandbox_airbobbelzLootExtraRollOne2 = "Extra Rolls (one) Set2",
   Sandbox_airbobbelzLootExtraRollOne2_tooltip = "Set of items where for each zombie, one item will be randomly chosen from the list and then rolled. IE zombie loot will have at most one item from this list. For example 'Paper:0.1;Axe:1'. Chances are between 0 and 100 and can be decimal.",
   Sandbox_airbobbelzLootExtraRollOne3 = "Extra Rolls (one) Set3",
-  Sandbox_airbobbelzLootExtraRollOne3_tooltip = "Set of items where for each zombie, one item will be randomly chosen from the list and then rolled. IE zombie loot will have at most one item from this list. For example 'Paper:0.1;Axe:1'. Chances are between 0 and 100 and can be decimal."
+  Sandbox_airbobbelzLootExtraRollOne3_tooltip = "Set of items where for each zombie, one item will be randomly chosen from the list and then rolled. IE zombie loot will have at most one item from this list. For example 'Paper:0.1;Axe:1'. Chances are between 0 and 100 and can be decimal.",
+  Sandbox_airbobbelzLootRemoveItems = "Remove Items",
+  Sandbox_airbobbelzLootRemoveItems_tooltip = "Items to remove from zombie loot added by this mod. Separated by semicolon, for example 'Axe;Money;Newspaper;Radio.WalkieTalkie5' will remove Axe, Money, Newspaper, and 'Walkie Talkie 5' items from all regular zombie and outfit-specific loot. For items in 'Base' type, for example 'Base.Axe', leave out 'Base.' from item name. Does not affect vanilla drops or drops added by other mods."
 }

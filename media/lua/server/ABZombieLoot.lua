@@ -1,18 +1,22 @@
+require "ABPretty"
+
 -- chances out of 100000 enables fractional chances. Chances passed to abch/AB_get_chance are still out of 100
 ABLoot_DIVISOR = 100000
 AB_LOOT_PLUGINS = {}
 
+local DEBUG = false
+
 -- provided `chance`, a double representing the chance out of 100 (which can be a decimal between 0 and 1),
 -- return an integer chance out of 100,000 (ABLoot_DIVISOR) with mod multipliers applied.
 -- sandboxMultiplier is a percentage integer to apply where 100 is 100% or 1x, 200 is 200% or 2x, etc
-function AB_get_chance(chance, sandboxMultiplier, extraMultiplier)
+function AB_get_chance(chance, multiplier1, multiplier2)
   local globalMultiplier = SandboxVars.AirbobbelzLoot.GlobalMultiplier or 100
   local baseChance = chance * (ABLoot_DIVISOR / 100)
-  if sandboxMultiplier ~= nil then
-    baseChance = baseChance * (sandboxMultiplier / 100)
+  if multiplier1 ~= nil then
+    baseChance = baseChance * (multiplier1 / 100)
   end
-  if extraMultiplier ~= nil then
-    baseChance = baseChance * (extraMultiplier / 100)
+  if multiplier2 ~= nil then
+    baseChance = baseChance * (multiplier2 / 100)
   end
   return baseChance * (globalMultiplier / 100)
 end
@@ -124,24 +128,6 @@ local function unserializePairs(str)
   return mytable
 end
 
--- dump a table to a string
-local function debug_dump(o)
-  if type(o) == "table" then
-    local s = "{ "
-    for k, v in pairs(o) do
-      if type(k) ~= "number" then
-        k = '"' .. k .. '"'
-      end
-      s = s .. "[" .. k .. "] = " .. debug_dump(v) .. ","
-    end
-    return s .. "} "
-  else
-    return tostring(o)
-  end
-end
-
-AB_debug_dump = debug_dump
-
 -- mutates t1 by appending all of t2's values into t1
 function AB_merge_into(t1, t2)
   for _, v in pairs(t2) do
@@ -187,22 +173,53 @@ function AB_is_valid_item(itemString)
   return createdItem ~= nil
 end
 
--- remove bad items from tables
-function AB_table_cleanup(distroTable)
+local function getItemRemovalMap()
+  local RemoveItems = SandboxVars.AirbobbelzLoot.RemoveItems or ""
+  local removeItemsMap = {}
+  for _, itemCode in pairs(split(RemoveItems, ";")) do
+    removeItemsMap[itemCode] = true
+  end
+  return removeItemsMap
+end
+
+function AB_table_cleanup(distroTable, removeItemsMap)
+  local newTable = {}
   for index, value in pairs(distroTable) do
     if type(value) == "table" then
       if value.item ~= nil then
-        if not AB_is_valid_item(value.item) then
-          -- print("AB LOOT -- cleaning up invalid item: " .. value.item)
-          table.remove(distroTable, index)
+        if AB_is_valid_item(value.item) and removeItemsMap[value.item] == nil then
+          -- if item is valid, add it to the new table.
+          -- use table.insert here instead of using index because items always
+          -- appear in indexed arrays and should be added sequentially
+          table.insert(newTable, AB_table_cleanup(value, removeItemsMap))
         else
-          AB_table_cleanup(value)
+          -- if item wasn't valid or in the removal map, just don't re-add it
+          if DEBUG then
+            print("AB LOOT -- cleaning up invalid item: " .. value.item)
+          end
         end
       else
-        AB_table_cleanup(value)
+        newTable[index] = AB_table_cleanup(value, removeItemsMap)
       end
+    else
+      newTable[index] = value
     end
   end
+  return newTable
+end
+
+-- where items is a collection of item names, get a distribution
+-- of each of those items, each with the same chance as `chance`,
+-- `chance` should already be passed through `abch()`
+local function multiplyDistro(items, chance)
+  local finalDistro = {}
+  for _, item in pairs(items) do
+    finalDistro[#finalDistro + 1] = {
+      item = item,
+      chance = chance
+    }
+  end
+  return finalDistro
 end
 
 function ABGetLootTables()
@@ -224,26 +241,55 @@ function ABGetLootTables()
     local GunLooseBulletsRolls = SandboxVars.AirbobbelzLoot.GunLooseBulletsRolls or 6
     local GunLooseBulletsMultiplier = SandboxVars.AirbobbelzLoot.GunLooseBulletsMultiplier or 100
 
+    local itemSets = {
+      -- some items from 'better flashlights' mod
+      flashlightsArmy = {"HandTorch", "Torch", "HandTorch_Army2", "HandTorch_Army1"},
+      flashlightsRegular = {"HandTorch", "Torch", "Torch1", "Torch2", "Torch3", "Torch7"},
+      flashlightsScience = {"HandTorch", "Torch", "Torch1", "Torch2", "Torch3", "Torch7", "BF_EgenerexLite"},
+      flashlightsToy = {"Torch4", "Torch5", "Torch6"},
+      seeds = {
+        "farming.BroccoliBagSeed",
+        "farming.CabbageBagSeed",
+        "farming.CarrotBagSeed",
+        "farming.RedRadishBagSeed",
+        "farming.StrewberrieBagSeed",
+        "farming.TomatoBagSeed"
+      },
+      -- compass mod
+      compasses = {"CliponCompass", "Compass", "Compass2"},
+      chips = {"Crisps", "Crisps2", "Crisps3", "Crisps4"},
+      -- porno mags mod
+      pornoMags = {"HottieZ", "PornoMag1", "PornoMag2", "PornoMag3", "PornoMag4", "PornoMag5"},
+      pop = {"Pop", "Pop2", "Pop3"},
+      wine = {"Wine", "Wine2"},
+      drugs = {"CheapSpeed", "CokeBaggie"},
+      -- leatherdad mod
+      multiTools = {"P38", "Leatherdad"},
+      cake = {"Cupcake", "ChocoCakes", "CakeSlice", "CakeCarrot", "CakeChocolate", "CakeRedVelvet"},
+      donuts = {"DoughnutChocolate", "DoughnutPlain", "DoughnutFrosted", "DoughnutJelly"}
+    }
+
     LootTables = {
       byOutfit = {
         AirCrew = {
-          rollEach = {
-            {item = "Radio.WalkieTalkie5", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-            {item = "HandTorch", chance = abch(15, OutfitMultiplier, ResourceMultiplier)}
+          rollEach = {},
+          rollOne = {
+            multiplyDistro(itemSets.flashlightsArmy, abch(3, OutfitMultiplier, ResourceMultiplier))
           }
         },
         AmbulanceDriver = {
           rollEach = {
             {item = "FirstAidKit", chance = abch(10, OutfitMultiplier, BagMultiplier)},
             {item = "Gloves_Surgical", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
-            {item = "HandTorch", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "Hat_SurgicalMask_Blue", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
             {item = "SutureNeedleHolder", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
+          },
+          rollOne = {
+            multiplyDistro(itemSets.flashlightsRegular, abch(3, OutfitMultiplier, ResourceMultiplier))
           }
         },
         ArmyCamoDesert = {
           rollEach = {
-            {item = "P38", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "TitaniumSpork", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "PornoMag6", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
             {item = "PLGR", chance = abch(1, OutfitMultiplier, JunkMultiplier)}
@@ -262,12 +308,13 @@ function ABGetLootTables()
                 }
               },
               {item = "556Box", chance = abch(15, OutfitMultiplier, AmmoBoxMultiplier)}
-            }
+            },
+            multiplyDistro(itemSets.flashlightsArmy, abch(3, OutfitMultiplier, ResourceMultiplier)),
+            multiplyDistro(itemSets.multiTools, abch(10, OutfitMultiplier, JunkMultiplier))
           }
         },
         ArmyCamoGreen = {
           rollEach = {
-            {item = "P38", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
             {item = "TitaniumSpork", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "PornoMag6", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
             {item = "PLGR", chance = abch(1, OutfitMultiplier, JunkMultiplier)}
@@ -286,14 +333,18 @@ function ABGetLootTables()
                 }
               },
               {item = "556Box", chance = abch(15, OutfitMultiplier, AmmoBoxMultiplier)}
-            }
+            },
+            multiplyDistro(itemSets.flashlightsArmy, abch(3, OutfitMultiplier, ResourceMultiplier)),
+            multiplyDistro(itemSets.multiTools, abch(10, OutfitMultiplier, JunkMultiplier))
           }
         },
         ArmyServiceUniform = {
           rollEach = {
             {item = "LabKeycard", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "IntelFolder", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "Radio.WalkieTalkie5", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
+            {item = "IntelFolder", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
+          },
+          rollOne = {
+            multiplyDistro(itemSets.flashlightsArmy, abch(3, OutfitMultiplier, ResourceMultiplier))
           }
           -- example of override for all junk distros when zombie has this outfit
           -- junk = {
@@ -304,12 +355,12 @@ function ABGetLootTables()
         },
         Bandit = {
           rollEach = {
-            {item = "CheapSpeed", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-            {item = "Cigarettes", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-            {item = "CokeBaggie", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "Knuckleduster", chance = abch(10, OutfitMultiplier, MeleeMultiplier)},
             {item = "PornoMag6", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "WhiskeyFull", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
+          },
+          rollOne = {
+            multiplyDistro(itemSets.drugs, abch(10, OutfitMultiplier, JunkMultiplier))
           }
         },
         BaseballPlayer_KY = {
@@ -329,19 +380,14 @@ function ABGetLootTables()
         },
         Bathrobe = {
           rollEach = {
-            {item = "HottieZ", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "Rubberducky", chance = abch(16, OutfitMultiplier, JunkMultiplier)},
             {item = "Soap2", chance = abch(16, OutfitMultiplier, JunkMultiplier)},
-            {item = "Toothbrush", chance = abch(20, OutfitMultiplier, JunkMultiplier)}
+            {item = "Toothbrush", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
+            {item = "Toothpaste", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
+            {item = "Razor", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
           },
           rollOne = {
-            {
-              {item = "PornoMag1", chance = abch(8, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag2", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag3", chance = abch(8, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag4", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag5", chance = abch(8, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro(itemSets.pornoMags, abch(5, OutfitMultiplier, JunkMultiplier))
           }
         },
         Bedroom = {
@@ -352,12 +398,12 @@ function ABGetLootTables()
         },
         Biker = {
           rollEach = {
-            {item = "CheapSpeed", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
-            {item = "Cigarettes", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
-            {item = "CokeBaggie", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
-            {item = "Knuckleduster", chance = abch(20, OutfitMultiplier, MeleeMultiplier)},
+            {item = "Knuckleduster", chance = abch(10, OutfitMultiplier, MeleeMultiplier)},
             {item = "WhiskeyFull", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "Molotov", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
+          },
+          rollOne = {
+            multiplyDistro(itemSets.drugs, abch(15, OutfitMultiplier, JunkMultiplier))
           }
         },
         Camper = {
@@ -370,43 +416,41 @@ function ABGetLootTables()
             {item = "AxeStone", chance = abch(5, OutfitMultiplier, MeleeMultiplier)}
           },
           rollOne = {
-            {
-              {item = "BerryBlack", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryBlue", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryGeneric1", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryGeneric2", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryGeneric3", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryGeneric4", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "BerryGeneric5", chance = abch(8, OutfitMultiplier, OtherFoodMultiplier)}
-            },
-            {
-              {item = "PlantainCataplasm", chance = abch(8, OutfitMultiplier, JunkMultiplier)},
-              {item = "ComfreyCataplasm", chance = abch(8, OutfitMultiplier, JunkMultiplier)},
-              {item = "WildGarlicCataplasm", chance = abch(8, OutfitMultiplier, JunkMultiplier)}
-            },
-            {
-              {item = "CliponCompass", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-              {item = "Compass", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-              {item = "Compass2", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro(
+              {
+                "BerryBlack",
+                "BerryBlue",
+                "BerryGeneric1",
+                "BerryGeneric2",
+                "BerryGeneric3",
+                "BerryGeneric4",
+                "BerryGeneric5"
+              },
+              abch(8, OutfitMultiplier, OtherFoodMultiplier)
+            ),
+            multiplyDistro(
+              {"PlantainCataplasm", "ComfreyCataplasm", "WildGarlicCataplasm"},
+              abch(8, OutfitMultiplier, JunkMultiplier)
+            ),
+            multiplyDistro(itemSets.compasses, abch(10, OutfitMultiplier, JunkMultiplier)),
+            multiplyDistro(itemSets.flashlightsRegular, abch(1, OutfitMultiplier, ResourceMultiplier))
           }
         },
         Classy = {
-          rollEach = {
-            {item = "Wine", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)}
+          rollEach = {},
+          rollOne = {
+            multiplyDistro(itemSets.wine, abch(5, OutfitMultiplier, OtherFoodMultiplier))
           }
         },
         Cook_Generic = {
           rollEach = {
-            {item = "Cigarettes", chance = abch(30, OutfitMultiplier, JunkMultiplier)},
-            {item = "Dishcloth", chance = abch(30, OutfitMultiplier, JunkMultiplier)},
-            {item = "Notebook", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
-            {item = "Pencil", chance = abch(30, OutfitMultiplier, JunkMultiplier)}
+            {item = "Dishcloth", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
+            {item = "Notebook", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
+            {item = "Pencil", chance = abch(15, OutfitMultiplier, JunkMultiplier)}
           }
         },
         ConstructionWorker = {
           rollEach = {
-            {item = "Cigarettes", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "Measuring_Tape", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
             {item = "MetalSnips", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {
@@ -436,10 +480,10 @@ function ABGetLootTables()
             {item = "NailsBox", chance = abch(5, OutfitMultiplier, ResourceMultiplier)}
           },
           rollOne = {
-            {
-              {item = "spraypaint.SpraycanOrange", chance = abch(8, OutfitMultiplier, ResourceMultiplier)},
-              {item = "spraypaint.SpraycanRed", chance = abch(8, OutfitMultiplier, ResourceMultiplier)}
-            },
+            multiplyDistro(
+              {"spraypaint.SpraycanOrange", "spraypaint.SpraycanRed"},
+              abch(8, OutfitMultiplier, ResourceMultiplier)
+            ),
             {
               {item = "DuctTape", chance = abch(3, OutfitMultiplier, ResourceMultiplier)},
               {item = "Woodglue", chance = abch(3, OutfitMultiplier, ResourceMultiplier)},
@@ -464,11 +508,10 @@ function ABGetLootTables()
             {item = "SutureNeedleHolder", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
           },
           rollOne = {
-            {
-              {item = "SyringeEmpty", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-              {item = "SyringeZombieBlood", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-              {item = "SyringeBlood", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro(
+              {"SyringeEmpty", "SyringeZombieBlood", "SyringeBlood"},
+              abch(5, OutfitMultiplier, JunkMultiplier)
+            )
           }
         },
         DressLong = {
@@ -480,19 +523,13 @@ function ABGetLootTables()
         DressNormal = {
           rollEach = {},
           rollOne = {
-            {
-              {item = "HairDyeBlack", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "HairDyeBlonde", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro({"HairDyeBlack", "HairDyeBlonde"}, abch(8, OutfitMultiplier, JunkMultiplier))
           }
         },
         DressShort = {
           rollEach = {},
           rollOne = {
-            {
-              {item = "HairDyePink", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "HairDyeBlonde", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro({"HairDyePink", "HairDyeBlonde"}, abch(8, OutfitMultiplier, JunkMultiplier))
           }
         },
         Farmer = {
@@ -501,21 +538,13 @@ function ABGetLootTables()
             {item = "SeedBag", chance = abch(5, OutfitMultiplier, BagMultiplier)}
           },
           rollOne = {
-            {
-              {item = "farming.BroccoliBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
-              {item = "farming.CabbageBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
-              {item = "farming.CarrotBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
-              {item = "farming.RedRadishBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
-              {item = "farming.StrewberrieBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)},
-              {item = "farming.TomatoBagSeed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)}
-            }
+            multiplyDistro(itemSets.seeds, abch(10, OutfitMultiplier, ResourceMultiplier))
           }
         },
         Fireman = {
           rollEach = {
             {item = "Axe", chance = abch(5, OutfitMultiplier, MeleeMultiplier)},
-            {item = "Extinguisher", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "WalkieTalkie4", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
+            {item = "Extinguisher", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
           }
         },
         FiremanFullSuit = {
@@ -527,9 +556,9 @@ function ABGetLootTables()
         },
         Foreman = {
           rollEach = {
-            {item = "BluePen", chance = abch(25, OutfitMultiplier, JunkMultiplier)},
-            {item = "Measuring_Tape", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
-            {item = "Notebook", chance = abch(25, OutfitMultiplier, JunkMultiplier)}
+            {item = "BluePen", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
+            {item = "Measuring_Tape", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "Notebook", chance = abch(15, OutfitMultiplier, JunkMultiplier)}
           },
           rollOne = {
             {
@@ -546,8 +575,8 @@ function ABGetLootTables()
             {item = "FishingNet", chance = abch(5, OutfitMultiplier, ResourceMultiplier)},
             {item = "FishingMag1", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "FishingMag2", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "FishingTackle", chance = abch(25, OutfitMultiplier, ResourceMultiplier)},
-            {item = "FishingTackle2", chance = abch(25, OutfitMultiplier, ResourceMultiplier)}
+            {item = "FishingTackle", chance = abch(15, OutfitMultiplier, ResourceMultiplier)},
+            {item = "FishingTackle2", chance = abch(15, OutfitMultiplier, ResourceMultiplier)}
           }
         },
         FitnessInstructor = {
@@ -567,28 +596,27 @@ function ABGetLootTables()
         },
         Golfer = {
           rollEach = {
-            {item = "GolfBall", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
-            {item = "Notebook", chance = abch(25, OutfitMultiplier, JunkMultiplier)},
-            {item = "Pencil", chance = abch(33, OutfitMultiplier, JunkMultiplier)}
+            {item = "GolfBall", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
+            {item = "Notebook", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
+            {item = "Pencil", chance = abch(15, OutfitMultiplier, JunkMultiplier)}
           }
         },
         HazardSuit = {
           rollEach = {
-            {item = "LabKeycard", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-            {item = "Scalpel", chance = abch(30, OutfitMultiplier, MeleeMultiplier)}
+            {item = "LabKeycard", chance = abch(10, OutfitMultiplier, JunkMultiplier)}, -- mod item
+            {item = "Scalpel", chance = abch(15, OutfitMultiplier, MeleeMultiplier)}
           },
           rollOne = {
-            {
-              {item = "SyringeEmpty", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
-              {item = "SyringeZombieBlood", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
-              {item = "SyringeBlood", chance = abch(33, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro(itemSets.flashlightsScience, abch(5, OutfitMultiplier, ResourceMultiplier)),
+            multiplyDistro(
+              {"SyringeEmpty", "SyringeZombieBlood", "SyringeBlood"}, -- modded
+              abch(20, OutfitMultiplier, JunkMultiplier)
+            )
           }
         },
         HospitalPatient = {
           rollEach = {
-            {item = "BandageDirty", chance = abch(40, OutfitMultiplier, JunkMultiplier)},
-            {item = "BandageDirty", chance = abch(40, OutfitMultiplier, JunkMultiplier)}
+            {item = "BandageDirty", chance = abch(30, OutfitMultiplier, JunkMultiplier), times = 2}
           }
         },
         Hunter = {
@@ -600,11 +628,8 @@ function ABGetLootTables()
             {item = "TitaniumSpork", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
           },
           rollOne = {
-            {
-              {item = "CliponCompass", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "Compass", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "Compass2", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
-            },
+            multiplyDistro(itemSets.flashlightsRegular, abch(3, OutfitMultiplier, ResourceMultiplier)),
+            multiplyDistro(itemSets.compasses, abch(5, OutfitMultiplier, JunkMultiplier)),
             {
               {
                 item = "223Bullets",
@@ -677,7 +702,7 @@ function ABGetLootTables()
               }
             },
             {item = "CarBatteryCharger", chance = abch(1, OutfitMultiplier, ResourceMultiplier)},
-            {item = "spraypaint.SpraycanRed", chance = abch(15, OutfitMultiplier, ResourceMultiplier)}
+            {item = "spraypaint.SpraycanRed", chance = abch(10, OutfitMultiplier, ResourceMultiplier)}
           }
         },
         Metalworker = {
@@ -713,35 +738,35 @@ function ABGetLootTables()
         },
         OfficeWorker = {
           rollEach = {
-            {item = "BluePen", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
-            {item = "Notebook", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
+            {item = "BluePen", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "Notebook", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "Paperclip", chance = abch(15, OutfitMultiplier, JunkMultiplier)}
           }
         },
         Party = {
+          rollEach = {},
           rollOne = {
-            {
-              {item = "Crisps", chance = abch(15, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "Crisps2", chance = abch(15, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "Crisps3", chance = abch(15, OutfitMultiplier, OtherFoodMultiplier)},
-              {item = "Crisps4", chance = abch(15, OutfitMultiplier, OtherFoodMultiplier)}
-            }
+            multiplyDistro(itemSets.chips, abch(15, OutfitMultiplier, OtherFoodMultiplier)),
+            multiplyDistro(itemSets.pop, abch(15, OutfitMultiplier, OtherFoodMultiplier)),
+            multiplyDistro(itemSets.cake, abch(10, OutfitMultiplier, OtherFoodMultiplier))
           }
         },
         PokerDealer = {
           rollEach = {
-            {item = "CardDeck", chance = abch(50, OutfitMultiplier, JunkMultiplier)}
+            {item = "CardDeck", chance = abch(35, OutfitMultiplier, JunkMultiplier)}
           }
         },
         Priest = {
           rollEach = {
-            {item = "Necklace_Crucifix", chance = abch(80, OutfitMultiplier, JunkMultiplier)},
+            {item = "Necklace_Crucifix", chance = abch(50, OutfitMultiplier, JunkMultiplier)},
             {item = "Lollipop", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)}
           }
         },
         Police = {
-          rollEach = {
-            {item = "HandTorch", chance = abch(10, OutfitMultiplier, ResourceMultiplier)}
+          rollEach = {},
+          rollOne = {
+            multiplyDistro(itemSets.flashlightsRegular, abch(5, OutfitMultiplier, ResourceMultiplier)),
+            multiplyDistro(itemSets.donuts, abch(5, OutfitMultiplier, OtherFoodMultiplier))
           }
         },
         Punk = {
@@ -754,58 +779,47 @@ function ABGetLootTables()
         },
         Raider = {
           rollEach = {
-            {item = "CheapSpeed", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
-            {item = "Cigarettes", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
-            {item = "CokeBaggie", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
             {item = "Knuckleduster", chance = abch(20, OutfitMultiplier, MeleeMultiplier)},
             {item = "PornoMag6", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "WhiskeyFull", chance = abch(5, OutfitMultiplier, OtherFoodMultiplier)},
             {item = "Molotov", chance = abch(5, OutfitMultiplier, ResourceMultiplier)}
+          },
+          rollOne = {
+            multiplyDistro(itemSets.drugs, abch(15, OutfitMultiplier, JunkMultiplier))
           }
         },
         Ranger = {
-          rollEach = {
-            {item = "Torch", chance = abch(5, OutfitMultiplier, ResourceMultiplier)}
+          rollEach = {},
+          rollOne = {
+            multiplyDistro(itemSets.flashlightsRegular, abch(5, OutfitMultiplier, ResourceMultiplier))
           }
         },
         Redneck = {
           rollEach = {
-            {item = "BeerCan", chance = abch(10, OutfitMultiplier, CannedFoodMultiplier)},
-            {item = "BeefJerky", chance = abch(5, OutfitMultiplier, OtherFoodMultiplier)},
-            {item = "CheapSpeed", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-            {item = "Cigarettes", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
-            {item = "CokeBaggie", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "WhiskeyFull", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)}
+            {item = "BeefJerky", chance = abch(5, OutfitMultiplier, OtherFoodMultiplier)}
+          },
+          rollOne = {
+            multiplyDistro({"BeerCan", "WhiskeyFull"}, abch(8, OutfitMultiplier, OtherFoodMultiplier)),
+            multiplyDistro(itemSets.drugs, abch(5, OutfitMultiplier, JunkMultiplier))
           }
         },
         Rocker = {
           rollEach = {
-            {item = "CheapSpeed", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-            {item = "Cigarettes", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
-            {item = "CokeBaggie", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "Molotov", chance = abch(2, OutfitMultiplier, ResourceMultiplier)}
           },
           rollOne = {
-            {
-              {
-                item = "BeerCan",
-                chance = abch(20, OutfitMultiplier, CannedFoodMultiplier)
-              },
-              {
-                item = "WhiskeyFull",
-                chance = abch(20, OutfitMultiplier, OtherFoodMultiplier)
-              }
-            }
+            multiplyDistro(itemSets.drugs, abch(5, OutfitMultiplier, JunkMultiplier)),
+            multiplyDistro({"BeerCan", "WhiskeyFull"}, abch(15, OutfitMultiplier, CannedFoodMultiplier))
           }
         },
         Santa = {
           rollEach = {
-            {item = "Candycane", chance = abch(50, OutfitMultiplier, OtherFoodMultiplier)}
+            {item = "Candycane", chance = abch(20, OutfitMultiplier, OtherFoodMultiplier), times = 4}
           }
         },
         SantaGreen = {
           rollEach = {
-            {item = "Candycane", chance = abch(50, OutfitMultiplier, OtherFoodMultiplier)}
+            {item = "Candycane", chance = abch(20, OutfitMultiplier, OtherFoodMultiplier), times = 4}
           }
         },
         SportsFan = {
@@ -816,58 +830,45 @@ function ABGetLootTables()
         },
         Student = {
           rollEach = {
-            {item = "Book", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "BeerCan", chance = abch(5, OutfitMultiplier, CannedFoodMultiplier)},
-            {item = "Radio.CDplayer", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "ComicBook", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "Cube", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-            {item = "Notebook", chance = abch(25, OutfitMultiplier, JunkMultiplier)},
+            {item = "Cube", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
+            {item = "Notebook", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
             {item = "Firecracker", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "Pencil", chance = abch(25, OutfitMultiplier, JunkMultiplier)},
-            {item = "VideoGame", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
+            {item = "Pencil", chance = abch(15, OutfitMultiplier, JunkMultiplier)}
           },
           rollOne = {
-            {
-              {item = "PornoMag1", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag2", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag3", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag4", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag5", chance = abch(1, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro(
+              {"Book", "VideoGame", "Radio.CDplayer", "ComicBook"},
+              abch(10, OutfitMultiplier, JunkMultiplier)
+            ),
+            multiplyDistro(itemSets.flashlightsToy, abch(2, OutfitMultiplier, ResourceMultiplier)),
+            multiplyDistro(itemSets.pornoMags, abch(5, OutfitMultiplier, JunkMultiplier))
           }
         },
         Survivalist = {
           rollEach = {
             {item = "FlareGun", chance = abch(5, OutfitMultiplier, PistolMultiplier)},
             {item = "Leatherdad", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "MRE", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)},
+            {item = "MRE", chance = abch(5, OutfitMultiplier, OtherFoodMultiplier)},
             {item = "PLGR", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
             {item = "TitaniumSpork", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "HerbalistMag", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
+            {item = "HerbalistMag", chance = abch(3, OutfitMultiplier, JunkMultiplier)}
           },
           rollOne = {
-            {
-              {item = "CliponCompass", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "Compass", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "Compass2", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro(itemSets.compasses, abch(5, OutfitMultiplier, JunkMultiplier))
           }
         },
         Survivalist02 = {
           rollEach = {
             {item = "FlareGun", chance = abch(5, OutfitMultiplier, PistolMultiplier)},
             {item = "Leatherdad", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "MRE", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)},
+            {item = "MRE", chance = abch(5, OutfitMultiplier, OtherFoodMultiplier)},
             {item = "PLGR", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
             {item = "TitaniumSpork", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-            {item = "HerbalistMag", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
+            {item = "HerbalistMag", chance = abch(3, OutfitMultiplier, JunkMultiplier)}
           },
           rollOne = {
-            {
-              {item = "CliponCompass", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "Compass", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "Compass2", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro(itemSets.compasses, abch(5, OutfitMultiplier, JunkMultiplier))
           }
         },
         Survivalist03 = {
@@ -876,23 +877,19 @@ function ABGetLootTables()
             {item = "Leatherdad", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
             {item = "MRE", chance = abch(5, OutfitMultiplier, OtherFoodMultiplier)},
             {item = "PLGR", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
-            {item = "HerbalistMag", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
+            {item = "HerbalistMag", chance = abch(3, OutfitMultiplier, JunkMultiplier)}
           },
           rollOne = {
-            {
-              {item = "CliponCompass", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "Compass", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "Compass2", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro(itemSets.compasses, abch(5, OutfitMultiplier, JunkMultiplier))
           }
         },
         Teacher = {
           rollEach = {
             {item = "Book", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-            {item = "BluePen", chance = abch(25, OutfitMultiplier, JunkMultiplier)},
-            {item = "Notebook", chance = abch(25, OutfitMultiplier, JunkMultiplier)},
-            {item = "Pencil", chance = abch(25, OutfitMultiplier, JunkMultiplier)},
-            {item = "RedPen", chance = abch(50, OutfitMultiplier, JunkMultiplier)},
+            {item = "BluePen", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
+            {item = "Notebook", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
+            {item = "Pencil", chance = abch(15, OutfitMultiplier, JunkMultiplier)},
+            {item = "RedPen", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
             {item = "WhiskeyFull", chance = abch(5, OutfitMultiplier, OtherFoodMultiplier)}
           }
         },
@@ -910,41 +907,35 @@ function ABGetLootTables()
         },
         Varsity = {
           rollEach = {
-            {item = "Radio.CDplayer", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
-            {item = "HottieZ", chance = abch(1, OutfitMultiplier, JunkMultiplier)},
-            {item = "BeerCan", chance = abch(10, OutfitMultiplier, CannedFoodMultiplier)},
-            {item = "WhiskeyFull", chance = abch(10, OutfitMultiplier, OtherFoodMultiplier)}
+            {item = "Radio.CDplayer", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
           },
           rollOne = {
-            {
-              {item = "PornoMag1", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag2", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag3", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag4", chance = abch(5, OutfitMultiplier, JunkMultiplier)},
-              {item = "PornoMag5", chance = abch(5, OutfitMultiplier, JunkMultiplier)}
-            }
+            multiplyDistro(itemSets.pornoMags, abch(5, OutfitMultiplier, JunkMultiplier)),
+            multiplyDistro({"BeerCan", "WhiskeyFull"}, abch(5, OutfitMultiplier, OtherFoodMultiplier))
           }
         },
         Waiter_Classy = {
           rollEach = {
-            {item = "BluePen", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
-            {item = "CorkScrew", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
-            {item = "Notebook", chance = abch(33, OutfitMultiplier, JunkMultiplier)}
+            {item = "BluePen", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "CorkScrew", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "Notebook", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
           }
         },
         Waiter_Diner = {
           rollEach = {
-            {item = "Cigarettes", chance = abch(30, OutfitMultiplier, JunkMultiplier)},
-            {item = "Dishcloth", chance = abch(30, OutfitMultiplier, JunkMultiplier)},
-            {item = "Notebook", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
-            {item = "Pencil", chance = abch(33, OutfitMultiplier, JunkMultiplier)}
+            {item = "Dishcloth", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "Notebook", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "Pencil", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
+          },
+          rollOne = {
+            multiplyDistro(itemSets.cake, abch(5, OutfitMultiplier, OtherFoodMultiplier))
           }
         },
         Waiter_Restaurant = {
           rollEach = {
-            {item = "BluePen", chance = abch(33, OutfitMultiplier, JunkMultiplier)},
-            {item = "CorkScrew", chance = abch(20, OutfitMultiplier, JunkMultiplier)},
-            {item = "Notebook", chance = abch(33, OutfitMultiplier, JunkMultiplier)}
+            {item = "BluePen", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "CorkScrew", chance = abch(10, OutfitMultiplier, JunkMultiplier)},
+            {item = "Notebook", chance = abch(10, OutfitMultiplier, JunkMultiplier)}
           }
         }
       },
@@ -1267,35 +1258,27 @@ function ABGetLootTables()
       },
       otherFood = {
         rollEach = {
-          {item = "MintCandy", chance = abch(0.8, OtherFoodMultiplier)},
+          {item = "MintCandy", chance = abch(0.5, OtherFoodMultiplier)},
           {item = "JuiceBox", chance = abch(0.5, OtherFoodMultiplier)},
-          {item = "Lollipop", chance = abch(0.8, OtherFoodMultiplier)},
-          {item = "CookieChocolateChip", chance = abch(0.8, OtherFoodMultiplier)},
-          {item = "SunflowerSeeds", chance = abch(0.8, OtherFoodMultiplier)},
-          {item = "Peanuts", chance = abch(0.8, OtherFoodMultiplier)},
-          {item = "Gum", chance = abch(0.8, OtherFoodMultiplier)},
-          {item = "Chocolate", chance = abch(0.1, OtherFoodMultiplier)}
+          {item = "Lollipop", chance = abch(0.5, OtherFoodMultiplier)},
+          {item = "CookieChocolateChip", chance = abch(0.5, OtherFoodMultiplier)},
+          {item = "SunflowerSeeds", chance = abch(0.5, OtherFoodMultiplier)},
+          {item = "Peanuts", chance = abch(0.5, OtherFoodMultiplier)},
+          {item = "Gum", chance = abch(0.5, OtherFoodMultiplier)},
+          {item = "Chocolate", chance = abch(0.2, OtherFoodMultiplier)},
+          {item = "MRE", chance = abch(0.1, OtherFoodMultiplier)}
         },
         rollOne = {
-          {
-            {item = "Pop", chance = abch(0.8, OtherFoodMultiplier)},
-            {item = "Pop2", chance = abch(0.8, OtherFoodMultiplier)},
-            {item = "Pop3", chance = abch(0.8, OtherFoodMultiplier)}
-          },
-          {
-            {item = "Crisps", chance = abch(0.4, OtherFoodMultiplier)},
-            {item = "Crisps2", chance = abch(0.4, OtherFoodMultiplier)},
-            {item = "Crisps3", chance = abch(0.4, OtherFoodMultiplier)},
-            {item = "Crisps4", chance = abch(0.4, OtherFoodMultiplier)}
-          }
+          multiplyDistro(itemSets.pop, abch(0.5, OtherFoodMultiplier)),
+          multiplyDistro(itemSets.chips, abch(0.4, OtherFoodMultiplier))
         }
       },
       resources = {
         rollEach = {},
         rollOne = {
+          multiplyDistro(itemSets.flashlightsRegular, abch(0.5, ResourceMultiplier)),
           {
             {item = "Glue", chance = abch(0.8, ResourceMultiplier)},
-            {item = "Torch", chance = abch(1, ResourceMultiplier)},
             {
               item = "Nails",
               chance = abch(1, ResourceMultiplier),
@@ -1409,8 +1392,13 @@ function ABGetLootTables()
     end
 
     -- remove any invalid items from the loot table, so that
-    -- we don't end up wasting rolls on items that would never appear
-    AB_table_cleanup(LootTables)
+    -- we don't end up wasting rolls on items that would never appear.
+    -- Also remove anything explicity in the removal map
+    LootTables = AB_table_cleanup(LootTables, getItemRemovalMap())
+
+    if DEBUG then
+      AB_LOOT_prettyPrint(LootTables)
+    end
   end
   return LootTables
 end

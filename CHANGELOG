@@ -1,3 +1,13 @@
+# Version 1.0.2
+
+- Fixed an issue around cleaning up distributions of items belonging to inactive mods
+- Add 'better flashlights' flashlights to distributions
+- Reduced some outfit specific loot
+- Added donuts to police zombies
+- Fixed minimum condition rounding error
+- Removed rolling of loot for naked zombies
+- Add sandbox option for removing specific items from loot dropped in this mod
+
 # Version 1.0.1
 
 - reduce ammo box drops by 100x when Brita's weapons is activated to be more in-line with extremely rare vanilla drops

@@ -249,3 +249,10 @@ option AirbobbelzLoot.ExtraRollOne3 {
 	page=AirbobbelzLoot,
 	translation=airbobbelzLootExtraRollOne3,
 }
+
+option AirbobbelzLoot.RemoveItems {
+	type = string,
+	default=,
+	page=AirbobbelzLoot,
+	translation=airbobbelzLootRemoveItems,
+}
