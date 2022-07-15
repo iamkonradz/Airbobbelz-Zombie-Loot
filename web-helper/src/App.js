@@ -177,7 +177,7 @@ function App() {
 
       <Card title="Extra items value from sandbox vars">
         <Input.TextArea
-          placeholder="String to put into sandbox vars 'Extra' loot"
+          placeholder="String to put into sandbox vars 'Extra' loot. Paste your previous settings here to update them below, or start adding below to create a new setting."
           value={sandboxString}
           onChange={(ev) => setSandboxString(ev.target.value)}
           onBlur={(ev) => {
